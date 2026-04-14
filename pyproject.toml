@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jusi-sql"
+version = "0.1.0"
+description = "Shared SQL plugin infrastructure for Jusi"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Jusi contributors" }
+]
+dependencies = [
+  "jusi",
+  "visidata>=3,<4",
+  "sqlparse>=0.5,<0.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jusi_sql"]
