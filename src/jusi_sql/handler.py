@@ -21,6 +21,36 @@ def _normalize_followup_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _replace_span(line_text: str, current_word: str) -> tuple[int | None, int | None]:
+    if not current_word:
+        return None, None
+    cursor = len(line_text)
+    start = cursor - len(current_word)
+    if start < 0:
+        return None, None
+    if line_text[start:cursor] != current_word:
+        start = line_text.rfind(current_word)
+        if start < 0:
+            return None, None
+        cursor = start + len(current_word)
+    return start, cursor
+
+
+def _apply_completion_span(payload: dict[str, Any], items: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    line_text = str(payload.get("line_text", ""))
+    current_word = str(payload.get("current_word", "")).strip()
+    start_col, end_col = _replace_span(line_text.rstrip(), current_word)
+    normalized: list[dict[str, Any]] = []
+    for item in items:
+        current = dict(item)
+        if current.get("start_col") is None:
+            current["start_col"] = start_col
+        if current.get("end_col") is None:
+            current["end_col"] = end_col
+        normalized.append(current)
+    return normalized
+
+
 class BaseSqlHandler(BaseVdHandler):
     def __init__(self) -> None:
         super().__init__()
@@ -106,7 +136,8 @@ class BaseSqlHandler(BaseVdHandler):
         )
         items = response.get("items", ())
         if isinstance(items, list):
-            return [dict(item) for item in items if isinstance(item, dict)]
+            provider_items = [dict(item) for item in items if isinstance(item, dict)]
+            return _apply_completion_span(payload, provider_items)
         return ()
 
     def followup(self, context: HandlerContext, payload: dict[str, Any]) -> None:
