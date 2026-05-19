@@ -8,11 +8,12 @@ from IPython.core.error import UsageError
 
 from jusi.domain.models import JUSI_HANDLER_HANDOFF_MIME
 from jusi.infrastructure.debug_timing import emit_timing
+from jusi.infrastructure.runtime import JUSI_SESSION_CONFIG_ENV
 
-from .config import SqlConfigError, get_session_config, resolve_sql_target, set_session_config
+from .config import SqlConfigError, resolve_sql_target, set_session_config
 
 
-JUSI_SQL_CONFIG_ENV = "JUSI_SESSION_CONFIG_JSON"
+JUSI_SQL_CONFIG_ENV = JUSI_SESSION_CONFIG_ENV
 
 
 def register_sql_magic(ipython: Any) -> None:
@@ -41,7 +42,7 @@ def register_sql_magic(ipython: Any) -> None:
                 "alias": target.alias,
                 "provider": target.provider,
                 "line": line,
-                "session_config": get_session_config(),
+                "target_config": dict(target.options),
             },
         }
         display(

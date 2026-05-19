@@ -5,11 +5,24 @@ import os
 import sys
 from typing import Any, Sequence
 
-from jusi.domain.models import ClientTransport, ExecutableCell
-from jusi.plugins import BaseVdHandler, HandlerContext
+from jusi.domain.models import ExecutableCell
+from jusi.plugins import BasePluginRuntimeVdHandler, HandlerContext
 
-from .kernel import JUSI_SQL_CONFIG_ENV
 from .sheet import install_sql_base_sheet_api
+
+
+_TERMINAL_ENV_ALLOWLIST = {
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "PATH",
+    "SHELL",
+    "TERM",
+    "TMPDIR",
+    "USER",
+    "VIRTUAL_ENV",
+}
 
 
 def _normalize_followup_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -51,7 +64,7 @@ def _apply_completion_span(payload: dict[str, Any], items: Sequence[dict[str, An
     return normalized
 
 
-class BaseSqlHandler(BaseVdHandler):
+class BaseSqlHandler(BasePluginRuntimeVdHandler):
     def __init__(self) -> None:
         super().__init__()
         self._payload: dict[str, object] | None = None
@@ -110,16 +123,15 @@ class BaseSqlHandler(BaseVdHandler):
         return [sys.executable, "-m", "jusi", "plugin-runtime"], ""
 
     def terminal_env(self) -> dict[str, str]:
-        env = os.environ.copy()
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key in _TERMINAL_ENV_ALLOWLIST or key.startswith("JUSI_") or key.startswith("XDG_")
+        }
         env["TERM"] = os.environ.get("JUSI_SQL_TERM", "").strip() or "xterm-256color"
         env["JUSI_PLUGIN_RUNTIME_CALLABLE"] = self.plugin_runtime_callable()
         payload = self._payload or {"content": "", "meta": {}}
         env["JUSI_SQL_PAYLOAD_JSON"] = json.dumps(payload)
-        meta = payload.get("meta", {})
-        if isinstance(meta, dict):
-            session_config = meta.get("session_config")
-            if isinstance(session_config, dict):
-                env[JUSI_SQL_CONFIG_ENV] = json.dumps(session_config)
         return env
 
     def snapshot(self) -> dict[str, Any]:
@@ -129,23 +141,15 @@ class BaseSqlHandler(BaseVdHandler):
             snapshot["payload"] = dict(self._payload)
         return snapshot
 
-    def complete(self, context: HandlerContext, payload: dict[str, Any]) -> Sequence[dict[str, Any]]:
-        response = context.call_backend_action(
-            "plugin_runtime_request",
-            {"message_type": "complete", "payload": dict(payload)},
-        )
-        items = response.get("items", ())
-        if isinstance(items, list):
-            provider_items = [dict(item) for item in items if isinstance(item, dict)]
-            return _apply_completion_span(payload, provider_items)
-        return ()
+    def normalize_followup_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return _normalize_followup_payload(payload)
 
-    def followup(self, context: HandlerContext, payload: dict[str, Any]) -> None:
-        context.call_backend_action(
-            "plugin_runtime_request",
-            {"message_type": "followup", "payload": _normalize_followup_payload(payload)},
-        )
-        return None
+    def normalize_completion_items(
+        self,
+        payload: dict[str, Any],
+        items: Sequence[dict[str, Any]],
+    ) -> Sequence[dict[str, Any]]:
+        return _apply_completion_span(payload, items)
 
     def stop(self) -> None:
         super().stop()
