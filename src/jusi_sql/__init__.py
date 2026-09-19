@@ -1,19 +1,63 @@
-from .config import SqlTargetConfig, get_session_config, resolve_sql_target, set_session_config
-from .handler import BaseSqlHandler
-from .kernel import configure_sql_session, load_ipython_extension, register_sql_magic
-from .sheet import BaseSqlSheet, SqlSheetRuntime, install_sql_base_sheet_api, queue_sql_sheet
+"""Provider-neutral SQL family primitives for Jusi 1.0.
+
+This module intentionally imports neither IPython nor a terminal application.
+Catalog discovery can therefore import it without crossing runtime boundaries.
+"""
+
+from .catalog import (
+    FAMILY_ID,
+    MAGIC_NAME,
+    SQL_CAPABILITIES,
+    SQL_PRESENTATION,
+    sql_catalog_entry,
+    sql_family_claim,
+)
+from .completion import (
+    CompletionColumn,
+    CompletionItem,
+    CompletionObject,
+    MetadataSnapshot,
+    SqlCompletionRequest,
+    complete_sql,
+    parse_query_relations,
+)
+from .config import (
+    ResolvedSqlTarget,
+    SqlConfigError,
+    SqlFamilyConfig,
+    SqlProviderIdentity,
+    SqlTarget,
+    resolve_sql_target,
+)
+from .metadata import MetadataCache, sql_cache_directory
+from .visidata import SqlSheetActions, bind_sql_actions, find_sql_actions, install_visidata_commands
 
 __all__ = [
-    "BaseSqlHandler",
-    "BaseSqlSheet",
-    "SqlSheetRuntime",
-    "SqlTargetConfig",
-    "configure_sql_session",
-    "get_session_config",
-    "install_sql_base_sheet_api",
-    "queue_sql_sheet",
-    "load_ipython_extension",
-    "register_sql_magic",
+    "FAMILY_ID",
+    "MAGIC_NAME",
+    "SQL_CAPABILITIES",
+    "SQL_PRESENTATION",
+    "CompletionColumn",
+    "CompletionItem",
+    "CompletionObject",
+    "MetadataSnapshot",
+    "MetadataCache",
+    "ResolvedSqlTarget",
+    "SqlCompletionRequest",
+    "SqlConfigError",
+    "SqlFamilyConfig",
+    "SqlProviderIdentity",
+    "SqlSheetActions",
+    "SqlTarget",
+    "complete_sql",
+    "bind_sql_actions",
+    "find_sql_actions",
+    "install_visidata_commands",
+    "parse_query_relations",
     "resolve_sql_target",
-    "set_session_config",
+    "sql_catalog_entry",
+    "sql_cache_directory",
+    "sql_family_claim",
 ]
+
+__version__ = "0.2.0"
